@@ -61,7 +61,7 @@ import ws.xsoh.etar.R;
  * and a boolean that determines if the parent activity should exit if the
  * event is deleted.  Then to use the instance, call one of the
  * {@link delete()} methods on this class.
- *
+ * <p>
  * An instance of this class may be created once and reused (by calling
  * {@link #delete()} multiple times).
  */
@@ -99,72 +99,72 @@ public class DeleteEventHelper {
      */
     private DialogInterface.OnClickListener mDeleteNormalDialogListener =
             new DialogInterface.OnClickListener() {
-        public void onClick(DialogInterface dialog, int button) {
-            deleteStarted();
-            long id = mModel.mId; // mCursor.getInt(mEventIndexId);
+                public void onClick(DialogInterface dialog, int button) {
+                    deleteStarted();
+                    long id = mModel.mId; // mCursor.getInt(mEventIndexId);
 
-            // If this event is part of a local calendar, really remove it from the database
-            //
-            // "There are two versions of delete: as an app and as a sync adapter.
-            // An app delete will set the deleted column on an event and remove all instances of that event.
-            // A sync adapter delete will remove the event from the database and all associated data."
-            // from https://developer.android.com/reference/android/provider/CalendarContract.Events
-            boolean isLocal = mModel.mSyncAccountType.equals(CalendarContract.ACCOUNT_TYPE_LOCAL);
-            Uri deleteContentUri = isLocal ? CalendarRepository.asLocalCalendarSyncAdapter(mModel.mSyncAccountName, Events.CONTENT_URI) : Events.CONTENT_URI;
+                    // If this event is part of a local calendar, really remove it from the database
+                    //
+                    // "There are two versions of delete: as an app and as a sync adapter.
+                    // An app delete will set the deleted column on an event and remove all instances of that event.
+                    // A sync adapter delete will remove the event from the database and all associated data."
+                    // from https://developer.android.com/reference/android/provider/CalendarContract.Events
+                    boolean isLocal = mModel.mSyncAccountType.equals(CalendarContract.ACCOUNT_TYPE_LOCAL);
+                    Uri deleteContentUri = isLocal ? CalendarRepository.asLocalCalendarSyncAdapter(mModel.mSyncAccountName, Events.CONTENT_URI) : Events.CONTENT_URI;
 
-            Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-            mService.startDelete(mService.getNextToken(), null, uri, null, null, Utils.UNDO_DELAY);
-            if (mCallback != null) {
-                mCallback.run();
-            }
-            if (mExitWhenDone) {
-                mParent.finish();
-            }
-        }
-    };
+                    Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
+                    mService.startDelete(mService.getNextToken(), null, uri, null, null, Utils.UNDO_DELAY);
+                    if (mCallback != null) {
+                        mCallback.run();
+                    }
+                    if (mExitWhenDone) {
+                        mParent.finish();
+                    }
+                }
+            };
     /**
      * This callback is used when an exception to an event is deleted
      */
     private DialogInterface.OnClickListener mDeleteExceptionDialogListener =
-        new DialogInterface.OnClickListener() {
-        public void onClick(DialogInterface dialog, int button) {
-            deleteStarted();
-            deleteExceptionEvent();
-            if (mCallback != null) {
-                mCallback.run();
-            }
-            if (mExitWhenDone) {
-                mParent.finish();
-            }
-        }
-    };
+            new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int button) {
+                    deleteStarted();
+                    deleteExceptionEvent();
+                    if (mCallback != null) {
+                        mCallback.run();
+                    }
+                    if (mExitWhenDone) {
+                        mParent.finish();
+                    }
+                }
+            };
     /**
      * This callback is used when a list item for a repeating event is selected
      */
     private DialogInterface.OnClickListener mDeleteListListener =
             new DialogInterface.OnClickListener() {
-        public void onClick(DialogInterface dialog, int button) {
-            // set mWhichDelete to the delete type at that index
-            mWhichDelete = mWhichIndex.get(button);
+                public void onClick(DialogInterface dialog, int button) {
+                    // set mWhichDelete to the delete type at that index
+                    mWhichDelete = mWhichIndex.get(button);
 
-            // Enable the "ok" button now that the user has selected which
-            // events in the series to delete.
-            Button ok = mAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
-            ok.setEnabled(true);
-        }
-    };
+                    // Enable the "ok" button now that the user has selected which
+                    // events in the series to delete.
+                    Button ok = mAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+                    ok.setEnabled(true);
+                }
+            };
     /**
      * This callback is used when a repeating event is deleted.
      */
     private DialogInterface.OnClickListener mDeleteRepeatingDialogListener =
             new DialogInterface.OnClickListener() {
-        public void onClick(DialogInterface dialog, int button) {
-            deleteStarted();
-            if (mWhichDelete != -1) {
-                deleteRepeatingEvent(mWhichDelete);
-            }
-        }
-    };
+                public void onClick(DialogInterface dialog, int button) {
+                    deleteStarted();
+                    if (mWhichDelete != -1) {
+                        deleteRepeatingEvent(mWhichDelete);
+                    }
+                }
+            };
 
     public DeleteEventHelper(Context context, Activity parentActivity, boolean exitWhenDone) {
         if (exitWhenDone && parentActivity == null) {
@@ -202,11 +202,11 @@ public class DeleteEventHelper {
      * the initial selection and is only used for repeating events.  Set
      * "which" to -1 to have nothing selected initially.
      *
-     * @param begin the begin time of the event, in UTC milliseconds
-     * @param end the end time of the event, in UTC milliseconds
+     * @param begin   the begin time of the event, in UTC milliseconds
+     * @param end     the end time of the event, in UTC milliseconds
      * @param eventId the event id
-     * @param which one of the values {@link DELETE_SELECTED},
-     *  {@link DELETE_ALL_FOLLOWING}, {@link DELETE_ALL}, or -1
+     * @param which   one of the values {@link DELETE_SELECTED},
+     *                {@link DELETE_ALL_FOLLOWING}, {@link DELETE_ALL}, or -1
      */
     public void delete(long begin, long end, long eventId, int which) {
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
@@ -234,7 +234,7 @@ public class DeleteEventHelper {
      *   <li> Events.TITLE </li>
      *   <li> Events.RRULE </li>
      * </ul>
-     *
+     * <p>
      * The required fields for a repeating event include the above plus the
      * following fields:
      *
@@ -245,16 +245,16 @@ public class DeleteEventHelper {
      *   <li> Events._SYNC_ID </li>
      *   <li> Events.EVENT_TIMEZONE </li>
      * </ul>
-     *
+     * <p>
      * If the event no longer exists in the db this will still prompt
      * the user but will return without modifying the db after the query
      * returns.
      *
-     * @param begin the begin time of the event, in UTC milliseconds
-     * @param end the end time of the event, in UTC milliseconds
+     * @param begin  the begin time of the event, in UTC milliseconds
+     * @param end    the end time of the event, in UTC milliseconds
      * @param cursor the database cursor containing the required fields
-     * @param which one of the values {@link DELETE_SELECTED},
-     *  {@link DELETE_ALL_FOLLOWING}, {@link DELETE_ALL}, or -1
+     * @param which  one of the values {@link DELETE_SELECTED},
+     *               {@link DELETE_ALL_FOLLOWING}, {@link DELETE_ALL}, or -1
      */
     public void delete(long begin, long end, CalendarEventModel model, int which) {
         mWhichDelete = which;
@@ -268,6 +268,11 @@ public class DeleteEventHelper {
         // just some of them.
         String rRule = model.mRrule;
         String originalEvent = model.mOriginalSyncId;
+
+        if (which == 1024) {
+            mDeleteNormalDialogListener.onClick(null,which);
+            return;
+        }
         if (TextUtils.isEmpty(rRule)) {
             AlertDialog dialog = new MaterialAlertDialogBuilder(mContext)
                     .setMessage(R.string.delete_this_event_title)
@@ -324,7 +329,7 @@ public class DeleteEventHelper {
                     android.R.layout.simple_list_item_single_choice, labelArray);
             AlertDialog dialog = new MaterialAlertDialogBuilder(mContext)
                     .setTitle(
-                            mContext.getString(R.string.delete_recurring_event_title,model.mTitle))
+                            mContext.getString(R.string.delete_recurring_event_title, model.mTitle))
                     .setIconAttribute(android.R.attr.alertDialogIcon)
                     .setSingleChoiceItems(adapter, which, mDeleteListListener)
                     .setPositiveButton(android.R.string.ok, mDeleteRepeatingDialogListener)
@@ -422,7 +427,7 @@ public class DeleteEventHelper {
                     date.setTimezone(Time.TIMEZONE_UTC);
                 }
                 date.set(mStartMillis);
-                date.setSecond(date.getSecond() -1 );
+                date.setSecond(date.getSecond() - 1);
                 date.normalize();
 
                 // Google calendar seems to require the UNTIL string to be

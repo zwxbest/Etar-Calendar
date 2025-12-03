@@ -24,7 +24,7 @@ import java.util.TimeZone;
 /**
  * Helper class to make migration out of android.text.format.Time smoother.
  */
-public class Time {
+public class Time implements Comparable<Time> {
 
     public static final String TIMEZONE_UTC = "UTC";
 
@@ -101,6 +101,7 @@ public class Time {
         this(TimeZone.getDefault().getID());
     }
 
+
     public Time(String timezone) {
         if (timezone == null) {
             throw new NullPointerException("timezone cannot be null.");
@@ -111,6 +112,23 @@ public class Time {
         mCalendar = new GregorianCalendar(getTimeZone(), Locale.getDefault());
         clear(this.timezone);
     }
+
+
+    public static Time getCurrentTime(){
+        Time time = new Time();
+        GregorianCalendar curtime = new GregorianCalendar(time.getTimeZone(), Locale.getDefault());
+        int year = curtime.get(Calendar.YEAR);
+        int month = curtime.get(Calendar.MONTH);
+        int day = curtime.get(Calendar.DAY_OF_MONTH);
+        int hour = curtime.get(Calendar.HOUR_OF_DAY);
+        int minute = curtime.get(Calendar.MINUTE);
+        int second = curtime.get(Calendar.SECOND);
+        time.set(second,minute,hour,day,month,year);
+        return time;
+    }
+
+
+
 
     private void readFieldsFromCalendar() {
         year = mCalendar.get(Calendar.YEAR);
@@ -162,6 +180,63 @@ public class Time {
         mCalendar.set(year, month, day);
         readFieldsFromCalendar();
     }
+
+
+    public void setTime(int hour, int minute){
+        GregorianCalendar curtime = new GregorianCalendar(getTimeZone(), Locale.getDefault());
+        int year = curtime.get(Calendar.YEAR);
+        int month = curtime.get(Calendar.MONTH);
+        int day = curtime.get(Calendar.DAY_OF_MONTH);
+        clearCalendar();
+        mCalendar.set(year, month, day, hour, minute, 0);
+        readFieldsFromCalendar();
+    }
+
+//   获取当前时间
+    public Time SetCurTime(){
+        GregorianCalendar curtime = new GregorianCalendar(getTimeZone(), Locale.getDefault());
+        int year = curtime.get(Calendar.YEAR);
+        int month = curtime.get(Calendar.MONTH);
+        int day = curtime.get(Calendar.DAY_OF_MONTH);
+        int hour = curtime.get(Calendar.HOUR_OF_DAY);
+        int minute = curtime.get(Calendar.MINUTE);
+        int second = curtime.get(Calendar.SECOND);
+        clearCalendar();
+        mCalendar.set(year, month, day, hour, minute, second);
+        readFieldsFromCalendar();
+        return this;
+
+    }
+
+//    用当前的小时
+    public void setMinuteAndDefault(int minute){
+        GregorianCalendar curtime = new GregorianCalendar(getTimeZone(), Locale.getDefault());
+        int year = curtime.get(Calendar.YEAR);
+        int month = curtime.get(Calendar.MONTH);
+        int day = curtime.get(Calendar.DAY_OF_MONTH);
+        int hour = curtime.get(Calendar.HOUR_OF_DAY);
+        clearCalendar();
+        mCalendar.set(year, month, day, hour, minute, 0);
+        readFieldsFromCalendar();
+    }
+
+    public void SetHourAndDefault(int hour){
+        GregorianCalendar curtime = new GregorianCalendar(getTimeZone(), Locale.getDefault());
+        int year = curtime.get(Calendar.YEAR);
+        int month = curtime.get(Calendar.MONTH);
+        int day = curtime.get(Calendar.DAY_OF_MONTH);
+        clearCalendar();
+        mCalendar.set(year, month, day, hour, 0, 0);
+        readFieldsFromCalendar();
+    }
+
+
+    public int getCur(int kind){
+        GregorianCalendar curtime = new GregorianCalendar(getTimeZone(), Locale.getDefault());
+        return curtime.get(kind);
+    }
+
+
 
     public void set(int second, int minute, int hour, int day, int month, int year) {
         clearCalendar();

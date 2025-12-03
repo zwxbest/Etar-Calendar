@@ -82,6 +82,7 @@ import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.alerts.AlertService;
+import com.android.calendar.event.CreateDayEventDialogFragment;
 import com.android.calendar.month.MonthByWeekFragment;
 import com.android.calendar.selectcalendars.SelectVisibleCalendarsFragment;
 import com.android.calendar.settings.GeneralPreferences;
@@ -539,8 +540,10 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 } else if (t.getMinute() > 0 && t.getMinute() < 30) {
                     t.setMinute(30);
                 }
-                mController.sendEventRelatedEvent(
-                        this, EventType.CREATE_EVENT, -1, t.toMillis(), 0, 0, 0, -1);
+                CreateDayEventDialogFragment dayfragment = new CreateDayEventDialogFragment();
+                         dayfragment.show(getSupportFragmentManager(), "MyBottomSheetDialog");
+//                mController.sendEventRelatedEvent(
+//                        this, EventType.CREATE_EVENT, -1, t.toMillis(), 0, 0, 0, -1);
             }
         });
     }

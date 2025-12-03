@@ -3979,28 +3979,41 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void doLongPress(MotionEvent ev) {
-        eventClickCleanup();
-        if (mScrolling) {
-            return;
+
+        Event selectedEvent = mClickedEvent;
+        if (selectedEvent == null) {
+            return ;
         }
+        mPopup.dismiss();
+        mLastPopupEventID = INVALID_EVENT_ID;
 
-        // Scale gesture in progress
-        if (mStartingSpanY != 0) {
-            return;
-        }
+        long begin = selectedEvent.startMillis;
+        long end = selectedEvent.endMillis;
+        long id = selectedEvent.id;
+        mDeleteEventHelper.delete(begin, end, id, 1024);
 
-        int x = (int) ev.getX();
-        int y = (int) ev.getY();
-
-        boolean validPosition = setSelectionFromPosition(x, y, false);
-        if (!validPosition) {
-            // return if the touch wasn't on an area of concern
-            return;
-        }
-
-        mSelectionMode = SELECTION_LONGPRESS;
-        invalidate();
-        performLongClick();
+//        eventClickCleanup();
+//        if (mScrolling) {
+//            return;
+//        }
+//
+//        // Scale gesture in progress
+//        if (mStartingSpanY != 0) {
+//            return;
+//        }
+//
+//        int x = (int) ev.getX();
+//        int y = (int) ev.getY();
+//
+//        boolean validPosition = setSelectionFromPosition(x, y, false);
+//        if (!validPosition) {
+//            // return if the touch wasn't on an area of concern
+//            return;
+//        }
+//
+//        mSelectionMode = SELECTION_LONGPRESS;
+//        invalidate();
+//        performLongClick();
     }
 
     private void doScroll(MotionEvent e1, MotionEvent e2, float deltaX, float deltaY) {
@@ -4419,57 +4432,58 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     item = menu.add(0, MENU_EVENT_DELETE, 0, R.string.event_delete);
                     item.setOnMenuItemClickListener(mContextMenuHandler);
                     item.setIcon(android.R.drawable.ic_menu_delete);
-                }
 
-                item = menu.add(0, MENU_EVENT_CREATE, 0, R.string.event_create);
-                item.setOnMenuItemClickListener(mContextMenuHandler);
-                item.setIcon(android.R.drawable.ic_menu_add);
-                item.setAlphabeticShortcut('n');
+
+                    item = menu.add(0, MENU_EVENT_CREATE, 0, R.string.event_create);
+                    item.setOnMenuItemClickListener(mContextMenuHandler);
+                    item.setIcon(android.R.drawable.ic_menu_add);
+                    item.setAlphabeticShortcut('n');
+                } else {
+                    // Otherwise, if the user long-pressed on a blank hour, allow
+                    // them to create an event. They can also do this by tapping.
+                    item = menu.add(0, MENU_EVENT_CREATE, 0, R.string.event_create);
+                    item.setOnMenuItemClickListener(mContextMenuHandler);
+                    item.setIcon(android.R.drawable.ic_menu_add);
+                    item.setAlphabeticShortcut('n');
+                }
             } else {
-                // Otherwise, if the user long-pressed on a blank hour, allow
-                // them to create an event. They can also do this by tapping.
+                // Week view.
+
+                // If there is a selected event, then allow it to be viewed and
+                // edited.
+                if (numSelectedEvents >= 1) {
+                    item = menu.add(0, MENU_EVENT_VIEW, 0, R.string.event_view);
+                    item.setOnMenuItemClickListener(mContextMenuHandler);
+                    item.setIcon(android.R.drawable.ic_menu_info_details);
+
+                    int accessLevel = getEventAccessLevel(mContext, mSelectedEvent);
+                    if (accessLevel == ACCESS_LEVEL_EDIT) {
+                        item = menu.add(0, MENU_EVENT_EDIT, 0, R.string.event_edit);
+                        item.setOnMenuItemClickListener(mContextMenuHandler);
+                        item.setIcon(android.R.drawable.ic_menu_edit);
+                        item.setAlphabeticShortcut('e');
+                    }
+
+                    if (accessLevel >= ACCESS_LEVEL_DELETE) {
+                        item = menu.add(0, MENU_EVENT_DELETE, 0, R.string.event_delete);
+                        item.setOnMenuItemClickListener(mContextMenuHandler);
+                        item.setIcon(android.R.drawable.ic_menu_delete);
+                    }
+                }
+
                 item = menu.add(0, MENU_EVENT_CREATE, 0, R.string.event_create);
                 item.setOnMenuItemClickListener(mContextMenuHandler);
                 item.setIcon(android.R.drawable.ic_menu_add);
                 item.setAlphabeticShortcut('n');
-            }
-        } else {
-            // Week view.
 
-            // If there is a selected event, then allow it to be viewed and
-            // edited.
-            if (numSelectedEvents >= 1) {
-                item = menu.add(0, MENU_EVENT_VIEW, 0, R.string.event_view);
+                item = menu.add(0, MENU_DAY, 0, R.string.show_day_view);
                 item.setOnMenuItemClickListener(mContextMenuHandler);
-                item.setIcon(android.R.drawable.ic_menu_info_details);
-
-                int accessLevel = getEventAccessLevel(mContext, mSelectedEvent);
-                if (accessLevel == ACCESS_LEVEL_EDIT) {
-                    item = menu.add(0, MENU_EVENT_EDIT, 0, R.string.event_edit);
-                    item.setOnMenuItemClickListener(mContextMenuHandler);
-                    item.setIcon(android.R.drawable.ic_menu_edit);
-                    item.setAlphabeticShortcut('e');
-                }
-
-                if (accessLevel >= ACCESS_LEVEL_DELETE) {
-                    item = menu.add(0, MENU_EVENT_DELETE, 0, R.string.event_delete);
-                    item.setOnMenuItemClickListener(mContextMenuHandler);
-                    item.setIcon(android.R.drawable.ic_menu_delete);
-                }
+                item.setIcon(android.R.drawable.ic_menu_day);
+                item.setAlphabeticShortcut('d');
             }
 
-            item = menu.add(0, MENU_EVENT_CREATE, 0, R.string.event_create);
-            item.setOnMenuItemClickListener(mContextMenuHandler);
-            item.setIcon(android.R.drawable.ic_menu_add);
-            item.setAlphabeticShortcut('n');
-
-            item = menu.add(0, MENU_DAY, 0, R.string.show_day_view);
-            item.setOnMenuItemClickListener(mContextMenuHandler);
-            item.setIcon(android.R.drawable.ic_menu_day);
-            item.setAlphabeticShortcut('d');
+            mPopup.dismiss();
         }
-
-        mPopup.dismiss();
     }
 
     private class ContextMenuHandler implements MenuItem.OnMenuItemClickListener {
@@ -4519,9 +4533,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                                 end, 0, 0, -1);
                     }
                     break;
-                }
-                default: {
-                    return false;
                 }
             }
             return true;
@@ -4987,6 +4998,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     @Override
     public boolean onLongClick(View v) {
+        // Call super.onLongClick to ensure the context menu is displayed
         int flags = DateUtils.FORMAT_SHOW_WEEKDAY;
         long time = getSelectedTimeInMillis();
         if (!mSelectionAllday) {
