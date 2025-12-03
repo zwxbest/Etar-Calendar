@@ -355,7 +355,5 @@
     <string name="chips_action_copy" msgid="6984158516334578792">"复制"</string>
     <string name="chips_action_cancel" msgid="2582257014578396781">"取消"</string>
     <string name="chips_permission_text" msgid="5601284803674008863">"允许推荐联系人"</string>
-<!--    <string name="delete_event">删除日程</string>-->
-<!--    <string name="move_to_next_hour">移动到下个小时</string>-->
-<!--    <string name="copy_to_next_hour">复制到下个小时</string>-->
+
 </resources>

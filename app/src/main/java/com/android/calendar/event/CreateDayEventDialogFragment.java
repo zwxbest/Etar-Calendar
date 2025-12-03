@@ -266,25 +266,6 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
 
                 title = title.replace("大后天", "");
 
-            } else if (title.startsWith("然后") || title.startsWith("然后") || title.startsWith("下一步")) {
-                Time curTime = new Time().SetCurTime();
-
-                curTime.add(Time.MINUTE,30);
-
-                int startminute = curTime.getMinute() / 30 * 30;
-                int endminute = curTime.getMinute() / 30 * 30 + 29;
-
-
-                Time starttime = new Time();
-                starttime.set(0,startminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.set(0,endminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
-                mEndTime = endtime.toMillis();
-                title = title.replace("接下来","");
-                title = title.replace("然后","");
-                title = title.replace("下一步","");
             } else if (title.startsWith("接下来") || title.startsWith("然后") || title.startsWith("下一步")) {
                 Time curTime = new Time().SetCurTime();
 

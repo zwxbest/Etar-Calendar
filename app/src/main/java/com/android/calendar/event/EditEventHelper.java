@@ -188,7 +188,7 @@ public class EditEventHelper {
      */
     public static final String EVENT_ALL_DAY = "allDay";
 
-    static final String[] CALENDARS_PROJECTION = new String[] {
+    public static final String[] CALENDARS_PROJECTION = new String[] {
             Calendars._ID, // 0
             Calendars.CALENDAR_DISPLAY_NAME, // 1
             Calendars.OWNER_ACCOUNT, // 2
@@ -217,7 +217,7 @@ public class EditEventHelper {
     static final int CALENDARS_INDEX_ACCOUNT_NAME = 11;
     static final int CALENDARS_INDEX_ACCOUNT_TYPE = 12;
 
-    static final String CALENDARS_WHERE_WRITEABLE_VISIBLE = Calendars.CALENDAR_ACCESS_LEVEL + ">="
+    public static final String CALENDARS_WHERE_WRITEABLE_VISIBLE = Calendars.CALENDAR_ACCESS_LEVEL + ">="
             + Calendars.CAL_ACCESS_CONTRIBUTOR + " AND " + Calendars.VISIBLE + "=1";
 
     /**
