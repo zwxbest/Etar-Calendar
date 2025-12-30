@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@android:color/white" /> <!-- 输入框背景色 -->
+    <stroke
+        android:width="1dp"
+        android:color="@color/fg_black_secondary" /> <!-- 边框颜色 -->
+    <corners android:radius="0dp" /> <!-- 强制直角 -->
+    <padding
+        android:bottom="8dp"
+        android:left="8dp"
+        android:right="8dp"
+        android:top="8dp" /> <!-- 内边距，模拟默认样式 -->
+</shape>

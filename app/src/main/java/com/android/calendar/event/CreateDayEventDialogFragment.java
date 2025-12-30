@@ -22,6 +22,7 @@ import com.android.calendar.AsyncQueryService;
 import com.android.calendar.CalendarController;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.Utils;
+import com.android.calendar.calendarcommon2.DateUtils;
 import com.android.calendar.calendarcommon2.Time;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.SettingsActivity;
@@ -30,7 +31,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,6 +63,17 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
     private long mCalendarId = -1;
     private String mCalendarOwner;
 
+    String pattern00  = "^(\\d+)年(\\d+)月(\\d+)日(\\d+):(\\d+)~(\\d+):(\\d+)";// 2025年3月1日11:20~11:30
+    String pattern0  = "^(\\d+)月(\\d+)日(\\d+):(\\d+)~(\\d+):(\\d+)";// 3月1日11:20~11:30
+    private String pattern1 = "^(\\d+):(\\d+)~(\\d+):(\\d+)";// 11:20~11:30 ，可能跨天
+    private String pattern2 = "^(\\d+)分到(\\d+)分";// 5分到10分，同一个小时，忽略小时
+    private String pattern3 = "^(\\d+)~(\\d+)"; //10~20，忽略小时
+    private String pattern4 = "^(\\d+)到(\\d+)";//5到10
+    private String pattern5 = "^(\\d+)月(\\d+)日";//3月1日
+
+    private String pattern6 =  "^(\\d+)年(\\d+)月(\\d+)日";
+
+    private String patternmulti1 = "^(\\d+)月(\\d+)日到(\\d+)月(\\d+)日";//3月1日到3月4日，也就是每天都得干这个，可能跨年
     /**
      * /**
      * setStyle 圆角效果
@@ -121,114 +137,224 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
         return m.find();
     }
 
-    public String extractTimestamp(String title) {
-//        智能识别内容中的日期
-//        格式为几月几日几点多少到几点多少
-//        也可以不带日期
 
-        String pattern1 = "(\\d+):(\\d+)~(\\d+):(\\d+)";//        11:20~11:30
-        String pattern2 = "(\\d+)分到(\\d+)分";//5分到10分，同一个小时，忽略小时
-        String pattern3 = "(\\d+)~(\\d+)"; //10~20，忽略小时
-        String pattern4 = "(\\d+)到(\\d+)";//5到10
-        String pattern5 = "(\\d+)月(\\d+)日";//3月1日
-        String pattern6 = "(\\d+)月(\\d+)日到(\\d+)月(\\d+)日";//3月1日到3月4日，也就是每天都得干这个
+
+//    是否是多个任务
+    private boolean isMultiTask(String title) {
         if (timeMatch(pattern1, title)) {
             Pattern r = Pattern.compile(pattern1);
             Matcher m = r.matcher(title);
             if (m.find()) {
-                String starthour = m.group(1);
-                String startmiute = m.group(2);
-                String endhour = m.group(3);
-                String endminute = m.group(4);
-
-                Time starttime = new Time();
-                starttime.setTime(Integer.parseInt(starthour), Integer.parseInt(startmiute));
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.setTime(Integer.parseInt(endhour), Integer.parseInt(endminute));
-                mEndTime = endtime.toMillis();
+                int starthour = Integer.valueOf(m.group(1));
+                int endhour = Integer.valueOf(m.group(3));
+//                比如22:00-7:00点睡觉
+                if (starthour > endhour){
+                    return true;
+                }
             }
-        } else if (timeMatch(pattern2, title)) {
-            // 5分到15分，按照当前小时计算
+        }
+        return false;
+    }
+
+
+    private TimeCheckResult checkTime(int year, int month, int day, int starthour, int startminute, int endhour, int endminute){
+        try {
+            LocalDateTime.of(year, month, day, starthour, startminute);
+            LocalDateTime.of(year, month, day, endhour, endminute);
+        } catch (Exception e){
+            return new TimeCheckResult(2, e.getMessage());
+        }
+        if(LocalDateTime.of(year, month, day, starthour, startminute).isAfter(LocalDateTime.of(year, month, day, endhour, endminute))){
+            return new TimeCheckResult(2,"开始时间不能晚于结束时间");
+        }
+        return new TimeCheckResult();
+    }
+
+//    补齐标题中的时间,格式为xx年xx月xx日xx时xx分到xx时xx分
+//    并检查输入的格式日期时间是否正确
+    private TimeCheckResult fillupTimeInTitle(String title){
+        Time currentTime = Time.getCurrentTime();
+        if (timeMatch(pattern00, title)) {
+            Pattern r = Pattern.compile(pattern00);
+            Matcher m = r.matcher(title);
+            if (m.find()) {
+                int year = Integer.valueOf(m.group(1));
+                int month = Integer.valueOf(m.group(2));
+                int day = Integer.valueOf(m.group(3));
+                int starthour = Integer.valueOf(m.group(4));
+                int startminute = Integer.valueOf(m.group(5));
+                int endhour = Integer.valueOf(m.group(6));
+                int endminute = Integer.valueOf(m.group(6));
+                TimeCheckResult timeCheckResult = checkTime(year, month, day, starthour, startminute, endhour, endminute);
+                if(timeCheckResult.code != 1){
+                    return timeCheckResult;
+                }
+                return new TimeCheckResult(title);
+            }
+        }else if (timeMatch(pattern0,title)){
+                Pattern r = Pattern.compile(pattern0);
+                Matcher m = r.matcher(title);
+                if (m.find()) {
+                    int month = Integer.valueOf(m.group(1));
+                    int day = Integer.valueOf(m.group(2));
+                    int starthour = Integer.valueOf(m.group(3));
+                    int startminute = Integer.valueOf(m.group(4));
+                    int endhour = Integer.valueOf(m.group(5));
+                    int endminute = Integer.valueOf(m.group(6));
+                    TimeCheckResult timeCheckResult = checkTime(currentTime.getYear(), currentTime.getMonth() + 1, currentTime.getDay(), starthour, startminute, endhour, endminute);
+                    if(timeCheckResult.code != 1){
+                        return timeCheckResult;
+                    }
+                    return new TimeCheckResult(currentTime.getYear() + "年" + month + "月" + day + "日" +
+                            starthour + ":" + startminute + "~" + endhour + ":" + endminute + title.replaceAll(pattern0,""));
+                }
+        }else if (timeMatch(pattern1, title)) {
+            Pattern r = Pattern.compile(pattern1);
+            Matcher m = r.matcher(title);
+            if (m.find()) {
+                int starthour = Integer.valueOf(m.group(1));
+                int startminute = Integer.valueOf(m.group(2));
+                int endhour = Integer.valueOf(m.group(3));
+                int endminute = Integer.valueOf(m.group(4));
+                TimeCheckResult timeCheckResult = checkTime(currentTime.getYear(), currentTime.getMonth() + 1, currentTime.getDay(), starthour, startminute, endhour, endminute);
+                if(timeCheckResult.code != 1){
+                    return timeCheckResult;
+                }
+                return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                        starthour + ":" + startminute + "~" + endhour + ":" + endminute + title.replaceAll(pattern1,""));
+            }
+        }else if (timeMatch(pattern2, title)) {
             Pattern r = Pattern.compile(pattern2);
             Matcher m = r.matcher(title);
             if (m.find()) {
-                String startminute = m.group(1);
-                String endminute = m.group(2);
-
-                Time starttime = new Time();
-                starttime.setMinuteAndDefault(Integer.parseInt(startminute));
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.setMinuteAndDefault(Integer.parseInt(endminute));
-                mEndTime = endtime.toMillis();
+                int startminute = Integer.valueOf(m.group(1));
+                int endminute = Integer.valueOf(m.group(2));
+                TimeCheckResult timeCheckResult = checkTime(currentTime.getYear(), currentTime.getMonth() + 1, currentTime.getDay(), currentTime.getHour(), startminute, currentTime.getHour(), endminute);
+                if(timeCheckResult.code != 1){
+                    return timeCheckResult;
+                }
+                return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                        currentTime.getHour() + ":" + startminute + "~" + currentTime.getHour() + ":" + endminute + title.replaceAll(pattern2,""));
             }
-        } else if (timeMatch(pattern3, title)) {
-//            15~20
+        }else if (timeMatch(pattern3, title)) {
             Pattern r = Pattern.compile(pattern3);
             Matcher m = r.matcher(title);
             if (m.find()) {
-                String startminute = m.group(1);
-                String endminute = m.group(2);
-
-                Time starttime = new Time();
-                starttime.setMinuteAndDefault(Integer.parseInt(startminute));
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.setMinuteAndDefault(Integer.parseInt(endminute));
-                mEndTime = endtime.toMillis();
+                int startminute = Integer.valueOf(m.group(1));
+                int endminute = Integer.valueOf(m.group(2));
+                TimeCheckResult timeCheckResult = checkTime(currentTime.getYear(), currentTime.getMonth() + 1, currentTime.getDay(), currentTime.getHour(), startminute, currentTime.getHour(), endminute);
+                if(timeCheckResult.code != 1){
+                    return timeCheckResult;
+                }
+                return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                        currentTime.getHour() + ":" + startminute + "~" + currentTime.getHour() + ":" + endminute + title.replaceAll(pattern3,""));
             }
-        }else if (timeMatch(pattern4,title)){
+        }else if (timeMatch(pattern4, title)) {
             Pattern r = Pattern.compile(pattern4);
             Matcher m = r.matcher(title);
             if (m.find()) {
-                String startminute = m.group(1);
-                String endminute = m.group(2);
-
-                Time starttime = new Time();
-                starttime.setMinuteAndDefault(Integer.parseInt(startminute));
-                mStartTime = starttime.toMillis();
-                Time endtime = new Time();
-                endtime.setMinuteAndDefault(Integer.parseInt(endminute));
-                mEndTime = endtime.toMillis();
+                int startminute = Integer.valueOf(m.group(1));
+                int endminute = Integer.valueOf(m.group(2));
+                TimeCheckResult timeCheckResult = checkTime(currentTime.getYear(), currentTime.getMonth() + 1, currentTime.getDay(), currentTime.getHour(), startminute, currentTime.getHour(), endminute);
+                if(timeCheckResult.code != 1){
+                    return timeCheckResult;
+                }
+                return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                        currentTime.getHour() + ":" + startminute + "~" + currentTime.getHour() + ":" + endminute + title.replaceAll(pattern4,""));
             }
-        } else if(timeMatch(pattern5,title)){
+        }else if (timeMatch(pattern5, title)) {
             Pattern r = Pattern.compile(pattern5);
             Matcher m = r.matcher(title);
             if (m.find()) {
-                String month = m.group(1);
-                String day = m.group(2);
+                String startmonth = m.group(1);
+                String startday = m.group(2);
+                //调用TimeCheck检查时间是否合法
+                TimeCheckResult timeCheckResult = checkTime(currentTime.getYear(), Integer.valueOf(startmonth), Integer.valueOf(startday),0, 0, 0, 59);
+                if(timeCheckResult.code != 1){
+                    return timeCheckResult;
+                }
+                return new TimeCheckResult(currentTime.getYear() + "年" + startmonth + "月" + startday + "日" +
+                       0 + ":" + 0 + "~" + 0 + ":" + 59 + title.replaceAll(pattern5,""));
+            }
+        } else if (timeMatch(pattern6, title)) {
+//            正则提取年月日,分组第一个是年,第二个是月,第三个是日
+            Pattern r = Pattern.compile(pattern6);
+            Matcher m = r.matcher(title);
+            if (m.find()) {
+                String startyear = m.group(1);
+                String startmonth = m.group(2);
+                String startday = m.group(3);
+                //调用TimeCheck检查时间是否合法
+                TimeCheckResult timeCheckResult = checkTime(Integer.valueOf(startyear), Integer.valueOf(startmonth), Integer.valueOf(startday),0, 0, 0, 59);
+                if(timeCheckResult.code != 1){
+                    return timeCheckResult;
+                }
+                return new TimeCheckResult(currentTime.getYear() + "年" + startmonth + "月" + startday + "日" +
+                       0 + ":" + 0 + "~" + 0 + ":" + 59 + title.replaceAll(pattern6,""));
+            }
+        }
+        return new TimeCheckResult(1,title);
+
+    }
+//    已经统一转换为xx年xx月xx日xx:xx~xx:xx的格式了
+    private TimeCheckResult extractTimestamp(String title) {
+
+        TimeCheckResult timeCheckResult = fillupTimeInTitle(title);
+        if (timeCheckResult.code != 1){
+            return timeCheckResult;
+        }
+
+        title = timeCheckResult.title;
+
+        if (timeMatch(pattern00, title)) {
+            Pattern r = Pattern.compile(pattern00);
+            Matcher m = r.matcher(title);
+            if (m.find()) {
+                int year = Integer.valueOf(m.group(1));
+                int month = Integer.valueOf(m.group(2));
+                int day = Integer.valueOf(m.group(3));
+                int starthour = Integer.valueOf(m.group(4));
+                int startmiute = Integer.valueOf(m.group(5));
+                int endhour = Integer.valueOf(m.group(6));
+                int endminute = Integer.valueOf(m.group(7));
+
                 Time starttime = Time.getCurrentTime();
-                starttime.set(0,0,0,Integer.parseInt(day),Integer.parseInt(month) -1,starttime.getYear());
+                starttime.set(0,startmiute,starthour,day,month-1,year);
                 mStartTime = starttime.toMillis();
 
-                Time endtime = Time.getCurrentTime();
-                endtime.set(0,0,1,Integer.parseInt(day),Integer.parseInt(month) - 1,starttime.getYear());
+                Time endtime =  Time.getCurrentTime();
+                endtime.set(0,endminute,endhour,day,month-1,year);
+
                 mEndTime = endtime.toMillis();
 
-                title = title.replaceAll(pattern5,"");
+//                如果分钟是0,29,30,59,则去掉前面所有的时间部分
+//                否则只去掉年月日
+                Set<Integer> minuteArray = Set.of(0,29,30,59);
+                if(minuteArray.contains(startmiute) && minuteArray.contains(endminute)){
+                    title = title.replaceAll(pattern00+"，","");
+                    title = title.replaceAll(pattern00,"");
+                }else{
+                    title = title.replaceAll(pattern6+"，","");
+                    title = title.replaceAll(pattern6,"");
+                }
             }
-        } else {
+        }  else {
             //如果都不满足，那就是没带时间，加到0-1点作为今日待办准备安排的
             if(title.startsWith("今天")){
                 Time starttime = new Time();
                 starttime.SetHourAndDefault(0);
-
                 mStartTime = starttime.toMillis();
 
                 Time endtime = new Time();
                 endtime.SetHourAndDefault(1);
                 mEndTime = endtime.toMillis();
+                title = title.replace("今天，", "");
                 title = title.replace("今天", "");
 
             } else if (title.startsWith("明天")) {
-                Time starttime = new Time();
-                starttime.SetHourAndDefault(0);
-                //                明天的
+                Time starttime = Time.getCurrentTime();
                 starttime.add(Time.MONTH_DAY,1);
+
                 mStartTime = starttime.toMillis();
 
                 Time endtime = new Time();
@@ -236,6 +362,7 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 endtime.add(Time.MONTH_DAY,1);
                 mEndTime = endtime.toMillis();
 
+                title = title.replace("明天，", "");
                 title = title.replace("明天", "");
 
             } else if (title.startsWith("后天")) {
@@ -250,12 +377,14 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 endtime.add(Time.MONTH_DAY,2);
                 mEndTime = endtime.toMillis();
 
+                title = title.replace("后天，", "");
                 title = title.replace("后天", "");
+
 
             }else if (title.startsWith("大后天")) {
                 Time starttime = new Time();
                 starttime.SetHourAndDefault(0);
-                //                明天的
+
                 starttime.add(Time.MONTH_DAY,3);
                 mStartTime = starttime.toMillis();
 
@@ -264,7 +393,30 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 endtime.add(Time.MONTH_DAY,3);
                 mEndTime = endtime.toMillis();
 
+                title = title.replace("大后天，", "");
                 title = title.replace("大后天", "");
+
+
+            } else if (title.startsWith("然后然后") || title.startsWith("然后，然后")) {
+                Time curTime = new Time().SetCurTime();
+
+                curTime.add(Time.MINUTE,60);
+
+                int startminute = curTime.getMinute() / 30 * 30;
+                int endminute = curTime.getMinute() / 30 * 30 + 29;
+
+
+                Time starttime = new Time();
+                starttime.set(0,startminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
+                mStartTime = starttime.toMillis();
+
+                Time endtime = new Time();
+                endtime.set(0,endminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
+                mEndTime = endtime.toMillis();
+                title = title.replace("然后然后，","");
+                title = title.replace("然后然后","");
+                title = title.replace("然后，然后，","");
+                title = title.replace("然后，然后","");
 
             } else if (title.startsWith("接下来") || title.startsWith("然后") || title.startsWith("下一步")) {
                 Time curTime = new Time().SetCurTime();
@@ -282,9 +434,13 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 Time endtime = new Time();
                 endtime.set(0,endminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
                 mEndTime = endtime.toMillis();
+                title = title.replace("接下来，","");
                 title = title.replace("接下来","");
+                title = title.replace("然后，","");
                 title = title.replace("然后","");
+                title = title.replace("下一步，","");
                 title = title.replace("下一步","");
+
             }  else {
 //                用当前的30分钟时间点建任务
                 Time starttime = new Time();
@@ -299,7 +455,7 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 mEndTime = endtime.toMillis();
             }
         }
-        return title;
+        return new TimeCheckResult(1,title);
     }
 
     // Find the calendar position in the cursor that matches calendar in
@@ -382,26 +538,47 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
     public void onClick(View v) {
         if (v.getId() == R.id.save_event) {
             String title = mEventTitle.getText().toString();
-            String pattern6 = "(\\d+)月(\\d+)日到(\\d+)月(\\d+)日";//3月1日到3月4日，也就是每天都得干这个
-            if(timeMatch(pattern6,title)){
+
+            if(timeMatch(patternmulti1,title)){
 //                创建重复的多个活动
-                Pattern r = Pattern.compile(pattern6);
+                Pattern r = Pattern.compile(patternmulti1);
                 Matcher m = r.matcher(title);
                 if (m.find()) {
-                    String startmonth = m.group(1);
-                    String startday = m.group(2);
-                    String endmonth = m.group(3);
-                    String endday = m.group(4);
+                    int startmonth = Integer.parseInt(m.group(1));
+                    int startday = Integer.parseInt(m.group(2));
+                    int endmonth = Integer.parseInt(m.group(3));
+                    int endday = Integer.parseInt(m.group(4));
+
                     Time starttime = Time.getCurrentTime();
-                    starttime.set(0,0,0,Integer.parseInt(startday),Integer.parseInt(startmonth) -1,starttime.getYear());
+                    starttime.set(0,0,0,startday,startmonth -1,starttime.getYear());
 
                     Time endtime = Time.getCurrentTime();
-                    endtime.set(0,0,1,Integer.parseInt(endday),Integer.parseInt(endmonth) -1 ,starttime.getYear());
+                    if(startmonth <= endmonth){
+                        endtime.set(0,0,1,endday,endmonth -1 ,starttime.getYear());
+                    }else {
+//                        跨年，比如12-20日到1-5日
+                        endtime.set(0,0,1,endday,endmonth -1 ,endtime.getYear()+1);
+                    }
+                    try {
+                        if(DateUtils.getDiffDays(starttime.getYear(),startmonth,startday,endtime.getYear(),endmonth,endday) > 60 ){
+                            Toast.makeText(getActivity(), String.format("多任务最长持续2个月，可临期再续"), Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                    }catch (Exception e){
+                        Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     int succcount = 0;
+                    String maintitle  = title.replaceAll(patternmulti1,"");
                     while (starttime.compareTo(endtime) < 0) {
-                        String maintitle  = title.replaceAll(pattern6,"");
-                        title = String.format("%s月%s日", starttime.getMonth() + 1,starttime.getDay())+ maintitle;
-                        title = extractTimestamp(title);
+                        title = String.format("%s年%s月%s日",starttime.getYear(), starttime.getMonth() + 1,starttime.getDay())+ maintitle;
+                        TimeCheckResult timeCheckResult = extractTimestamp(title);
+                        if (timeCheckResult.code != 1){
+                            dismiss();
+                            Toast.makeText(getActivity(), timeCheckResult.title, Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        title = timeCheckResult.title;
                         mModel.mStart = mStartTime;
                         mModel.mEnd = mEndTime;
                         mModel.mTitle = title;
@@ -412,15 +589,61 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                         if (b){
                             succcount ++;
                         }
-                        starttime.add(Time.MONTH_DAY,1);
+                        starttime.add(Time.YEAR_DAY,1);
                     }
                     if (succcount > 0){
                         dismiss();
                         Toast.makeText(getActivity(), String.format("成功创建%s条任务",succcount), Toast.LENGTH_SHORT).show();
                     }
                 }
-            }else {
-                title = extractTimestamp(title);
+            }else if (timeMatch(pattern1, title) && isMultiTask(title)){
+//                隔天的任务,比如22:00-7:00点睡觉
+                Pattern r = Pattern.compile(pattern1);
+                Matcher m = r.matcher(title);
+                if (m.find()) {
+                    String starthour = m.group(1);
+                    String startmiute = m.group(2);
+                    String endhour = m.group(3);
+                    String endminute = m.group(4);
+                    String maintitle  = title.replaceAll(pattern1,"");
+                    Time currentTime = Time.getCurrentTime();
+                    String title1 = (currentTime.getMonth()+1)+"月"+currentTime.getDay()+"日"+starthour+":"+ startmiute +"~"+ "23:59" +maintitle;
+                    currentTime.add(Time.YEAR_DAY,1);
+                    String title2 = (currentTime.getMonth()+1)+"月"+currentTime.getDay()+"日"+"00:00~"+ endhour+":"+ endminute + maintitle;
+                    String[] titles = new String[]{title1,title2};
+                    int succcount = 0;
+                    for (String t : titles){
+                        TimeCheckResult timeCheckResult = extractTimestamp(t);
+                        if (timeCheckResult.code != 1){
+                            dismiss();
+                            Toast.makeText(getActivity(), timeCheckResult.title, Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        title = timeCheckResult.title;
+                        mModel.mStart = mStartTime;
+                        mModel.mEnd = mEndTime;
+                        mModel.mTitle = title;
+                        mModel.mAllDay = false;
+                        mModel.mCalendarId = mCalendarId;
+                        mModel.mOwnerAccount = mCalendarOwner;
+                        boolean b = mEditEventHelper.saveEvent(mModel, null, 0);
+                        if (b){
+                            succcount ++;
+                        }
+                    }
+                    if (succcount > 0){
+                        dismiss();
+                        Toast.makeText(getActivity(), String.format("成功创建%s条任务",succcount), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            } else {
+                TimeCheckResult timeCheckResult = extractTimestamp(title);
+                if (timeCheckResult.code != 1){
+                    dismiss();
+                    Toast.makeText(getActivity(), timeCheckResult.title, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                title = timeCheckResult.title;
                 mModel.mStart = mStartTime;
                 mModel.mEnd = mEndTime;
                 mModel.mTitle = title;
@@ -433,7 +656,28 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                     Toast.makeText(getActivity(), R.string.creating_event, Toast.LENGTH_SHORT).show();
                 }
             }
+        }
+    }
 
+    private class TimeCheckResult{
+// 1-正常,2-时间错误
+        private int code = 1;
+        private String title = "";
+
+        public TimeCheckResult(){
+
+        }
+        public TimeCheckResult(int code, String title){
+            this.code = code;
+            this.title = title;
+        }
+
+        public TimeCheckResult(String title){
+            this.title = title;
+        }
+
+        public TimeCheckResult(int code){
+            this.code = code;
         }
     }
 
