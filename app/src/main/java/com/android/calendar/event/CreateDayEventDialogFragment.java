@@ -184,7 +184,7 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 int starthour = Integer.valueOf(m.group(4));
                 int startminute = Integer.valueOf(m.group(5));
                 int endhour = Integer.valueOf(m.group(6));
-                int endminute = Integer.valueOf(m.group(6));
+                int endminute = Integer.valueOf(m.group(7));
                 TimeCheckResult timeCheckResult = checkTime(year, month, day, starthour, startminute, endhour, endminute);
                 if(timeCheckResult.code != 1){
                     return timeCheckResult;
@@ -289,9 +289,68 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 if(timeCheckResult.code != 1){
                     return timeCheckResult;
                 }
-                return new TimeCheckResult(currentTime.getYear() + "年" + startmonth + "月" + startday + "日" +
+                return new TimeCheckResult(startyear + "年" + startmonth + "月" + startday + "日" +
                        0 + ":" + 0 + "~" + 0 + ":" + 59 + title.replaceAll(pattern6,""));
             }
+        }else if(title.startsWith("今天")){
+            title = title.replace("今天，", "");
+            title = title.replace("今天", "");
+
+            return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                    0 + ":" + 0 + "~" + 0 + ":" + 59 + title);
+
+        } else if (title.startsWith("明天")) {
+            currentTime.add(Time.YEAR_DAY,1);
+            title = title.replace("明天，", "");
+            title = title.replace("明天", "");
+
+            return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                    0 + ":" + 0 + "~" + 0 + ":" + 59 + title);
+
+
+        } else if (title.startsWith("后天")) {
+            currentTime.add(Time.YEAR_DAY,2);
+            title = title.replace("后天，", "");
+            title = title.replace("后天", "");
+
+            return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                    0 + ":" + 0 + "~" + 0 + ":" + 59 + title);
+
+        }else if (title.startsWith("大后天")) {
+            title = title.replace("大后天，", "");
+            title = title.replace("大后天", "");
+            currentTime.add(Time.YEAR_DAY,3);
+            return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                    0 + ":" + 0 + "~" + 0 + ":" + 59 + title);
+
+
+        } else if (title.startsWith("然后然后") || title.startsWith("然后，然后")) {
+            currentTime.add(Time.MINUTE,60);
+            int startminute = currentTime.getMinute() / 30 * 30;
+            int endminute = currentTime.getMinute() / 30 * 30 + 29;
+
+            title = title.replace("然后然后，","");
+            title = title.replace("然后然后","");
+            title = title.replace("然后，然后，","");
+            title = title.replace("然后，然后","");
+
+            return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                    currentTime.getHour() + ":" + startminute + "~" + currentTime.getHour() + ":" + endminute + title);
+
+        } else if (title.startsWith("接下来") || title.startsWith("然后") || title.startsWith("下一步")) {
+            currentTime.add(Time.MINUTE,30);
+
+            int startminute = currentTime.getMinute() / 30 * 30;
+            int endminute = currentTime.getMinute() / 30 * 30 + 29;
+            title = title.replace("接下来，","");
+            title = title.replace("接下来","");
+            title = title.replace("然后，","");
+            title = title.replace("然后","");
+            title = title.replace("下一步，","");
+            title = title.replace("下一步","");
+
+            return new TimeCheckResult(currentTime.getYear() + "年" + (currentTime.getMonth() + 1) + "月" + currentTime.getDay() + "日" +
+                    currentTime.getHour() + ":" + startminute + "~" + currentTime.getHour() + ":" + endminute + title);
         }
         return new TimeCheckResult(1,title);
 
@@ -339,110 +398,7 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 }
             }
         }  else {
-            //如果都不满足，那就是没带时间，加到0-1点作为今日待办准备安排的
-            if(title.startsWith("今天")){
-                Time starttime = new Time();
-                starttime.SetHourAndDefault(0);
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.SetHourAndDefault(1);
-                mEndTime = endtime.toMillis();
-                title = title.replace("今天，", "");
-                title = title.replace("今天", "");
-
-            } else if (title.startsWith("明天")) {
-                Time starttime = Time.getCurrentTime();
-                starttime.add(Time.MONTH_DAY,1);
-
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.SetHourAndDefault(1);
-                endtime.add(Time.MONTH_DAY,1);
-                mEndTime = endtime.toMillis();
-
-                title = title.replace("明天，", "");
-                title = title.replace("明天", "");
-
-            } else if (title.startsWith("后天")) {
-                Time starttime = new Time();
-                starttime.SetHourAndDefault(0);
-                //                明天的
-                starttime.add(Time.MONTH_DAY,2);
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.SetHourAndDefault(1);
-                endtime.add(Time.MONTH_DAY,2);
-                mEndTime = endtime.toMillis();
-
-                title = title.replace("后天，", "");
-                title = title.replace("后天", "");
-
-
-            }else if (title.startsWith("大后天")) {
-                Time starttime = new Time();
-                starttime.SetHourAndDefault(0);
-
-                starttime.add(Time.MONTH_DAY,3);
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.SetHourAndDefault(1);
-                endtime.add(Time.MONTH_DAY,3);
-                mEndTime = endtime.toMillis();
-
-                title = title.replace("大后天，", "");
-                title = title.replace("大后天", "");
-
-
-            } else if (title.startsWith("然后然后") || title.startsWith("然后，然后")) {
-                Time curTime = new Time().SetCurTime();
-
-                curTime.add(Time.MINUTE,60);
-
-                int startminute = curTime.getMinute() / 30 * 30;
-                int endminute = curTime.getMinute() / 30 * 30 + 29;
-
-
-                Time starttime = new Time();
-                starttime.set(0,startminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.set(0,endminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
-                mEndTime = endtime.toMillis();
-                title = title.replace("然后然后，","");
-                title = title.replace("然后然后","");
-                title = title.replace("然后，然后，","");
-                title = title.replace("然后，然后","");
-
-            } else if (title.startsWith("接下来") || title.startsWith("然后") || title.startsWith("下一步")) {
-                Time curTime = new Time().SetCurTime();
-
-                curTime.add(Time.MINUTE,30);
-
-                int startminute = curTime.getMinute() / 30 * 30;
-                int endminute = curTime.getMinute() / 30 * 30 + 29;
-
-
-                Time starttime = new Time();
-                starttime.set(0,startminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
-                mStartTime = starttime.toMillis();
-
-                Time endtime = new Time();
-                endtime.set(0,endminute,curTime.getHour(),curTime.getDay(),curTime.getMonth(),curTime.getYear());
-                mEndTime = endtime.toMillis();
-                title = title.replace("接下来，","");
-                title = title.replace("接下来","");
-                title = title.replace("然后，","");
-                title = title.replace("然后","");
-                title = title.replace("下一步，","");
-                title = title.replace("下一步","");
-
-            }  else {
-//                用当前的30分钟时间点建任务
+//               用当前的30分钟时间点建任务
                 Time starttime = new Time();
                 int curmiute = starttime.getCur(Calendar.MINUTE);
                 int startminute = curmiute / 30 * 30;
@@ -453,7 +409,6 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                 Time endtime = new Time();
                 endtime.setMinuteAndDefault(endminute);
                 mEndTime = endtime.toMillis();
-            }
         }
         return new TimeCheckResult(1,title);
     }
@@ -607,9 +562,9 @@ public class CreateDayEventDialogFragment extends BottomSheetDialogFragment impl
                     String endminute = m.group(4);
                     String maintitle  = title.replaceAll(pattern1,"");
                     Time currentTime = Time.getCurrentTime();
-                    String title1 = (currentTime.getMonth()+1)+"月"+currentTime.getDay()+"日"+starthour+":"+ startmiute +"~"+ "23:59" +maintitle;
+                    String title1 = currentTime.getYear()+"年"+(currentTime.getMonth()+1)+"月"+currentTime.getDay()+"日"+starthour+":"+ startmiute +"~"+ "23:59" +maintitle;
                     currentTime.add(Time.YEAR_DAY,1);
-                    String title2 = (currentTime.getMonth()+1)+"月"+currentTime.getDay()+"日"+"00:00~"+ endhour+":"+ endminute + maintitle;
+                    String title2 = currentTime.getYear()+"年"+(currentTime.getMonth()+1)+"月"+currentTime.getDay()+"日"+"00:00~"+ endhour+":"+ endminute + maintitle;
                     String[] titles = new String[]{title1,title2};
                     int succcount = 0;
                     for (String t : titles){

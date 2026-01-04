@@ -135,6 +135,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static final int MENU_EVENT_MOVE_NEXT_HOUR = 9;
     private static final int MENU_EVENT_COPY_NEXT_HOUR = 10;
 
+    private static final int MENU_EVENT_MOVE_TODAY = 11;
+
     private static int DEFAULT_CELL_HEIGHT = 64;
     private static int MAX_CELL_HEIGHT = 150;
     private static int MIN_Y_SPAN = 100;
@@ -143,6 +145,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private boolean mStartingScroll = false;
     protected boolean mPaused = true;
     private Handler mHandler;
+
+//    右键菜单是否已经创建
+    private boolean mMenuCreated = false;
     /**
      * ID of the last event which was displayed with the toast popup.
      *
@@ -4014,6 +4019,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         invalidate();
     }
 
+    private void doDoubleTapUp(MotionEvent ev) {
+        if (!mHandleActionUp || mScrolling) {
+            return;
+        }
+        if (mSelectedEvent != null) {
+            mController.sendEventRelatedEvent(this, EventType.EDIT_EVENT,
+                    mSelectedEvent.id, mSelectedEvent.startMillis,
+                    mSelectedEvent.endMillis, 0, 0, -1);
+        }
+    }
+
     private void doSingleTapUp(MotionEvent ev) {
         if (!mHandleActionUp || mScrolling) {
             return;
@@ -4506,9 +4522,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
-
     public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
         MenuItem item;
+        mMenuCreated = true;
         // If the trackball is held down, then the context menu pops up and
         // we never get onKeyUp() for the long-press. So check for it here
         // and change the selection to the long-press state.
@@ -4535,9 +4551,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     item = menu.add(0, MENU_EVENT_MOVE_NEXT_HOUR, 0, "移动到下面");
                     item.setOnMenuItemClickListener(mContextMenuHandler);
 
-                    // 复制到下一小时
-                    item = menu.add(0, MENU_EVENT_COPY_NEXT_HOUR, 0, "复制到下面");
+                    // 移动到今日待办
+                    item = menu.add(0, MENU_EVENT_MOVE_TODAY, 0, "移动到今天");
                     item.setOnMenuItemClickListener(mContextMenuHandler);
+//                    // 复制到下一小时
+//                    item = menu.add(0, MENU_EVENT_COPY_NEXT_HOUR, 0, "复制到下面");
+//                    item.setOnMenuItemClickListener(mContextMenuHandler);
                 } else if (accessLevel >= ACCESS_LEVEL_DELETE) {
                     // 删除日程
                     item = menu.add(0, MENU_EVENT_DELETE, 0, R.string.event_delete);
@@ -4674,6 +4693,33 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         Event selectedEvent = mSelectedEvent;
                         mModel.mStart = selectedEvent.startMillis + DateUtils.HOUR_IN_MILLIS/2;
                         mModel.mEnd =selectedEvent.endMillis + DateUtils.HOUR_IN_MILLIS/2;
+                        mModel.mTitle = selectedEvent.title.toString();
+                        mModel.mAllDay = false;
+                        mModel.mCalendarId = mCalendarId;
+                        mModel.mOwnerAccount = mCalendarOwner;
+                        mEditEventHelper.saveEvent(mModel, null, 0);
+                    }
+                    break;
+                }
+                case MENU_EVENT_MOVE_TODAY: {
+                    if (mSelectedEvent != null) {
+//                        先删除
+                        long begin = mSelectedEvent.startMillis;
+                        long end = mSelectedEvent.endMillis;
+                        long id = mSelectedEvent.id;
+                        mDeleteEventHelper.delete(begin, end, id, 1024);
+
+//                        再新建一个今天0点到0点59分的
+                        Event selectedEvent = mSelectedEvent;
+
+                        Time starttime = Time.getCurrentTime();
+                        starttime.set(0,0,0,starttime.getDay(),starttime.getMonth(),starttime.getYear());
+                        mModel.mStart = starttime.toMillis();
+
+//                        结束时间是0：59
+                        Time endtime = Time.getCurrentTime();
+                        endtime.set(0,59,0,endtime.getDay(),endtime.getMonth(),endtime.getYear());
+                        mModel.mEnd = endtime.toMillis();
                         mModel.mTitle = selectedEvent.title.toString();
                         mModel.mAllDay = false;
                         mModel.mCalendarId = mCalendarId;
@@ -5097,6 +5143,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             return true;
         }
 
+//        双击事件
+        @Override
+        public boolean onDoubleTap( MotionEvent ev) {
+            if (DEBUG) Log.e(TAG, "GestureDetector.onDoubleTap");
+            DayView.this.doDoubleTapUp(ev);
+            return true;
+        }
+
         @Override
         public void onLongPress(MotionEvent ev) {
             if (DEBUG) Log.e(TAG, "GestureDetector.onLongPress");
@@ -5139,6 +5193,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         @Override
         public boolean onDown(MotionEvent ev) {
             if (DEBUG) Log.e(TAG, "GestureDetector.onDown");
+            if(mMenuCreated){
+                mMenuCreated = false;
+                mSelectionMode = SELECTION_HIDDEN;
+            }
             DayView.this.doDown(ev);
             return true;
         }
