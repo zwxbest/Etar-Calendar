@@ -21,6 +21,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -51,8 +52,11 @@ import com.android.calendar.calendarcommon2.RecurrenceProcessor;
 import com.android.calendar.calendarcommon2.RecurrenceSet;
 import com.android.calendar.calendarcommon2.Time;
 import com.android.calendar.common.Rfc822Validator;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -297,6 +301,26 @@ public class EditEventHelper {
         mContextResolver = context.getContentResolver();
         this.mContext = context;
     }
+
+    private void SaveTaskCountIntoPref(long startTime,long endTime){
+        if (endTime - startTime >= 24 * 60 * 60 * 1000) {
+            return;
+        }
+        String key = "all_task_time";
+        SharedPreferences sp =mContext.getSharedPreferences(key, Context.MODE_PRIVATE);
+        String allTaskTime = sp.getString(key,"[]");
+        // 关键：用 TypeToken 明确泛型类型
+        Gson gson = new Gson();
+        TypeToken<List<List<Long>>> typeToken = new TypeToken<List<List<Long>>>() {};
+        List<List<Long>> taskTimeList = gson.fromJson(allTaskTime, typeToken.getType());
+        taskTimeList.add(Arrays.asList(startTime,endTime));
+        SharedPreferences.Editor editor = sp.edit();
+        String newJsonStr = gson.toJson(taskTimeList);
+        editor.putString(key, newJsonStr);
+        editor.apply();
+        Log.d("TaskNotification", "SaveTaskCountIntoPref: " + newJsonStr);
+    }
+
 
     /**
      * Saves the event. Returns true if the event was successfully saved, false
@@ -646,6 +670,7 @@ public class EditEventHelper {
         mService.startBatch(mService.getNextToken(), null, android.provider.CalendarContract.AUTHORITY, ops,
                 Utils.UNDO_DELAY);
 
+        SaveTaskCountIntoPref(model.mStart, model.mEnd);
         return true;
     }
 

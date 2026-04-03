@@ -33,6 +33,16 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission..FOREGROUND_SERVICE_DATA_SYNC"/>
+    <!-- 悬浮窗权限（国产手机模拟手势必需） -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 后台运行权限 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 语音输入核心：录音权限 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 部分语音识别需要联网解析（如谷歌/国内厂商语音服务） -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <queries>
         <intent>
@@ -232,6 +242,25 @@
             android:launchMode="singleInstance"
             android:theme="@android:style/Theme.Holo.Dialog" />
 
+        <!-- 注册广播接收器 -->
+        <!-- 注册前台服务 -->
+        <service
+            android:name="com.android.calendar.alerts.FiveMinuteService"
+         />
+        <!-- 讯飞输入法自动语音唤醒无障碍服务（Java版） -->
+        <service
+            android:name="com.android.calendar.event.IFLYTEKAccessibilityService"
+            android:enabled="true"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
         <receiver android:name="com.android.calendar.alerts.AlertReceiver"
             android:exported="true">
             <intent-filter>
@@ -248,6 +277,7 @@
                 <data android:host="com.android.calendar"/>
             </intent-filter>
         </receiver>
+
 
         <receiver android:name="com.android.calendar.UpgradeReceiver"
             android:exported="true">

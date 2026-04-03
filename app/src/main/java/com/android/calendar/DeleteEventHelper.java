@@ -22,12 +22,14 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Events;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 
@@ -38,9 +40,13 @@ import com.android.calendar.persistence.CalendarRepository;
 import com.android.calendar.calendarcommon2.EventRecurrence;
 import com.android.calendar.calendarcommon2.Time;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 import ws.xsoh.etar.R;
 
@@ -190,6 +196,30 @@ public class DeleteEventHelper {
         mExitWhenDone = exitWhenDone;
     }
 
+    private void deleteTaskCountPref(long startTime,long endTime){
+        String key = "all_task_time";
+        SharedPreferences sp =mContext.getSharedPreferences(key, Context.MODE_PRIVATE);
+        String allTaskTime = sp.getString(key,"[]");
+        // 关键：用 TypeToken 明确泛型类型
+        Gson gson = new Gson();
+        TypeToken<List<List<Long>>> typeToken = new TypeToken<List<List<Long>>>() {};
+        List<List<Long>> taskTimeList = gson.fromJson(allTaskTime, typeToken.getType());
+        Iterator<List<Long>> iterator = taskTimeList.iterator();
+        while (iterator.hasNext()) {
+            List<Long> taskTime = iterator.next();
+            if (taskTime.get(0).equals(startTime) && taskTime.get(1).equals(endTime)) {
+                iterator.remove(); // 用迭代器的 remove 方法，而非 List 的 remove
+                break;
+            }
+        }
+        SharedPreferences.Editor editor = sp.edit();
+        String newJsonStr = gson.toJson(taskTimeList);
+        editor.putString(key, newJsonStr);
+        editor.apply();
+        Log.d( "TaskNotification", "deleteTaskCountPref: " + newJsonStr);
+    }
+
+
     public void setExitWhenDone(boolean exitWhenDone) {
         mExitWhenDone = exitWhenDone;
     }
@@ -215,6 +245,8 @@ public class DeleteEventHelper {
         mStartMillis = begin;
         mEndMillis = end;
         mWhichDelete = which;
+
+        deleteTaskCountPref(begin,end);
     }
 
     public void delete(long begin, long end, long eventId, int which, Runnable callback) {

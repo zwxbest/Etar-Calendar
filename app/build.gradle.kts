@@ -20,7 +20,7 @@ android {
 	compileSdk = 36
 
 	defaultConfig {
-		minSdk = 23
+		minSdk = 26
 		targetSdk = 34
 		versionCode = 51
 		versionName = "1.0.51"
@@ -136,7 +136,7 @@ dependencies {
 
 	// https://mvnrepository.com/artifact/org.dmfs/lib-recur
 	implementation(libs.dmfs.lib.recur)
-
+    implementation("com.google.code.gson:gson:2.10.1")
 	// lifecycle
 	implementation(libs.androidx.lifecycle.livedata)
 }

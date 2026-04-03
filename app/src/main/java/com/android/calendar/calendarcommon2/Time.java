@@ -113,6 +113,12 @@ public class Time implements Comparable<Time> {
         clear(this.timezone);
     }
 
+    public static Time setAndGet(int year, int month, int day,int hour,int minute,int second) {
+        Time time = new Time();
+        time.set(second, minute, hour, day, month, year);
+        return time;
+    }
+
 
     public static Time getCurrentTime(){
         Time time = new Time();
@@ -156,6 +162,18 @@ public class Time implements Comparable<Time> {
                 && (field == MONTH_DAY || field == HOUR || field == MINUTE)) {
             mDstChangedByField = field;
         }
+    }
+
+    public Time addAndGet(int field, int amount) {
+        final boolean wasDstBefore = isInDst();
+        mCalendar.add(getCalendarField(field), amount);
+        if (APPLY_DST_CHANGE_LOGIC && wasDstBefore != isInDst()
+                && (field == MONTH_DAY || field == HOUR || field == MINUTE)) {
+            mDstChangedByField = field;
+        }
+        mCalendar.getTime();
+        return this;
+
     }
 
     public void set(long millis) {

@@ -16,6 +16,18 @@
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory
+        app:key="preferences_input_category"
+        app:title="输入设置">
+        <MultiSelectListPreference
+            app:key="pref_input_category_ignore_hours"
+            app:title="忽略特定时间点的任务" />
+        <CheckBoxPreference
+            app:key="pref_input_category_ignore_before"
+            app:defaultValue="false"
+            app:title="忽略当前时间之前的任务"
+            app:summary="比如现在19点，输入“18点吃饭”,会忽略不创建" />
+    </PreferenceCategory>
     <PreferenceCategory app:title="@string/preferences_general_title">
         <ListPreference
             app:key="pref_theme"

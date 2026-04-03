@@ -16,9 +16,17 @@
 
 package com.android.calendar;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.Application;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.android.calendar.alerts.FiveMinuteService;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.ViewDetailsPreferences;
 
@@ -46,8 +54,8 @@ public class CalendarApplication extends Application {
         // moved to that implementation.
         Utils.setSharedPreference(this, GeneralPreferences.KEY_VERSION,
                 Utils.getVersionCode(this));
-
         // Initialize the registry mapping some custom behavior.
         ExtensionsFactory.init(getAssets());
     }
+
 }

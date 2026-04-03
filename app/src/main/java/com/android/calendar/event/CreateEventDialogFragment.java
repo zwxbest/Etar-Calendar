@@ -207,7 +207,7 @@ public class CreateEventDialogFragment extends DialogFragment implements TextWat
         mModel.mOwnerAccount = mCalendarOwner;
 
         if (mEditEventHelper.saveEvent(mModel, null, 0)) {
-            Toast.makeText(getActivity(), R.string.creating_event, Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), "创建活动:"+mModel.mTitle, Toast.LENGTH_LONG).show();
         }
     }
 

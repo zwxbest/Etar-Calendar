@@ -39,6 +39,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.preference.CheckBoxPreference
 import androidx.preference.ListPreference
+import androidx.preference.MultiSelectListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
@@ -96,6 +97,71 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceManager.sharedPreferencesName = SHARED_PREFS_NAME
         setPreferencesFromResource(R.xml.general_preferences, rootKey)
+
+        // 找到 ListPreference
+        val timePolicyPref = findPreference<ListPreference>("pref_input_category_handle_before")
+        timePolicyPref?.apply {
+            // 界面显示的文字
+            entries = arrayOf("创建","忽略", "修正")
+
+            // 对应存储的值（0、1）
+            entryValues = arrayOf("0", "1","2")
+
+
+            setDefaultValue("0")
+
+            // 固定说明文字
+            val desc = "比如现在19点，输入“11点吃饭”，忽略的话会不创建，修正的话会识别成二十一点，会认定语音输入把第一个字节的二漏掉了"
+
+            // 自动更新 summary = 说明 + 换行 + 当前值
+            summaryProvider = Preference.SummaryProvider<ListPreference> { preference ->
+                val currentValue = preference.entry
+                "$desc\n当前选择：$currentValue"
+            }
+        }
+
+//        val multiSelectPref = findPreference<MultiSelectListPreference>("pref_input_category_ignore_hours")
+//
+//        multiSelectPref?.apply {
+//            val entries = mutableListOf<String>()
+//            val entryValues = mutableListOf<String>()
+//
+//            for (hour in 0..23) {
+//                entries.add("${hour}点")
+//                entryValues.add(hour.toString())
+//            }
+//            this.entries = entries.toTypedArray()
+//            this.entryValues = entryValues.toTypedArray()
+//
+//            // ==============================================
+//            // 3. 默认选中：0-6 、22-23
+//            // ==============================================
+//            val defaultList = mutableListOf<String>()
+//            // 0-6
+//            for (h in 0..6) defaultList.add(h.toString())
+//            // 22-23
+//            for (h in 22..23) defaultList.add(h.toString())
+//            setDefaultValue(defaultList)
+//
+//            // ==============================================
+//            // 4. summary 显示选中的值，逗号分隔
+//            // ==============================================
+//            summary = values.joinToString(", ")
+//            setOnPreferenceChangeListener { _, newValue ->
+//                // 1. 强转为 Set<String>
+//                val selectedSet = newValue as Set<String>
+//
+//                val sortedList = selectedSet
+//                    .mapNotNull { it.toIntOrNull() } // 转数字
+//                    .sorted() // 从小到大排序
+//                    .map { it.toString() } // 转回字符串
+//                // 3. 设置 summary
+//                summary = sortedList.joinToString(", ")
+//                true // 必须返回 true
+//            }
+//
+//
+//        }
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {

@@ -82,7 +82,10 @@ import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.alerts.AlertService;
+import com.android.calendar.alerts.FiveMinuteService;
+import com.android.calendar.event.AccessibilityPermissionUtils;
 import com.android.calendar.event.CreateDayEventDialogFragment;
+import com.android.calendar.event.IFLYTEKAccessibilityService;
 import com.android.calendar.month.MonthByWeekFragment;
 import com.android.calendar.selectcalendars.SelectVisibleCalendarsFragment;
 import com.android.calendar.settings.GeneralPreferences;
@@ -274,6 +277,17 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
 
         // Check and ask for most needed permissions
         checkAppPermissions();
+        requestNotificationPermission(this);
+        FiveMinuteService.start(this);
+
+        if (AccessibilityPermissionUtils.isAccessibilityServiceEnabled(
+                this, IFLYTEKAccessibilityService.class)) {
+            Toast.makeText(this, "无障碍权限已开启！", Toast.LENGTH_SHORT).show();
+        } else {
+            // 提示用户并跳转设置
+            Toast.makeText(this, "请在设置中开启无障碍权限", Toast.LENGTH_SHORT).show();
+            AccessibilityPermissionUtils.goToAccessibilitySettings(this);
+        }
 
         // Create notification channels
         AlertService.createChannels(this);
@@ -412,6 +426,22 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             }
         });
 
+    }
+
+    // 申请通知权限的方法（在Activity/Application中调用）
+    public void requestNotificationPermission(Context context) {
+        // 仅Android 13+需要申请
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // 注意：context必须是Activity，否则无法弹出权限请求框
+                if (context instanceof Activity) {
+                    ActivityCompat.requestPermissions((Activity) context,
+                            new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                            1003); // 请求码随意，只要唯一即可
+                }
+            }
+        }
     }
 
     private void checkAppPermissions() {

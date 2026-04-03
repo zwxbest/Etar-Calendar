@@ -16,6 +16,17 @@
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory
+        app:key="preferences_input_category"
+        app:title="输入设置">
+        <ListPreference
+            app:key="pref_input_category_handle_before"
+            app:title="忽略/修正当前时间之前的任务"
+            app:summary="比如现在19点，输入“11点吃饭”,忽略的话会不创建，修正的话会改成21点，会认定语音输入把第一个字节的2漏掉了，同理4->14" />
+<!--        <MultiSelectListPreference-->
+<!--            app:key="pref_input_category_ignore_hours"-->
+<!--            app:title="忽略特定时间点的任务，优先级：中" />-->
+    </PreferenceCategory>
     <PreferenceCategory app:title="@string/preferences_general_title">
         <ListPreference
             app:key="pref_theme"

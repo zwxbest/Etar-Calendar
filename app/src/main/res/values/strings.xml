@@ -19,6 +19,8 @@
     <!-- This is the label underneath the icon for Calendar -->
     <string name="app_label">Calendar</string>
 
+    <string name="accessibility_desc">自动长按讯飞输入法麦克风空格键，唤醒语音输入功能。开启后，当输入框弹出并唤起讯飞键盘时，将自动触发语音输入。</string>
+
     <!-- Shared Labels. These labels are shared among the activities. -->
     <skip/>
     <!-- This is the label for the time of an event [CHAR LIMIT=30] -->
